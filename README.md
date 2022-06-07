@@ -17,7 +17,6 @@
 ## Table of Contents
 
 [TOC]
-    
 
 ### References
 
