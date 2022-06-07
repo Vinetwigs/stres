@@ -238,3 +238,9 @@ Returns an array of strings.
 Returns a string.
 
 [Back to top](#table-of-contents)
+
+## Contributors
+
+<a href="https://github.com/Vinetwigs/stres/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Vinetwigs/stres" />
+</a>
