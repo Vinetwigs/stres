@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache_License_2.0-orange)](#license)
 [![issues - vilmos](https://img.shields.io/github/issues/Vinetwigs/stres)](https://github.com/Vinetwigs/stres/issues)
 
-<h1 align="center">stres - String resources in Go</h1>
+<h1 align="center">stres - Android Studio string resources in Go</h1>
 <p align="center">
    <i>
         A simple and easy-to-use library to import and export string resources into your Go applications just like you would do in Android Studio.
