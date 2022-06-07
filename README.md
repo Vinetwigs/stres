@@ -149,9 +149,9 @@ type Nesting struct {
 `String, err := stres.NewString("name", "value")`  
 
 
-| Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| name      | string | unique name to identify the string    |   |   |   |   |   |   |   |
+| Parameter | Type   | Description                           |   
+|-----------|--------|---------------------------------------|
+| name      | string | unique name to identify the string    |
 | value     | string | string to associate to the given name |
 
 Returns String instance and error.
@@ -163,10 +163,10 @@ Returns String instance and error.
 
 `strArr, err := stres.NewStringArray("name", []string{"value1","value2",...})`   
 
-| Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| name      | string | unique name to identify the string    |   |   |   |   |   |   |   |
-| values     | []string | array of strings to associate to the given name |
+| Parameter | Type   | Description                           |   
+|-----------|--------|---------------------------------------|
+| name      | string | unique name to identify the string    |
+| values    | []string | array of strings to associate to the given name |
 
 Returns StringArray instance and error.
 
@@ -178,8 +178,8 @@ Returns StringArray instance and error.
 `qntStr, err := stres.NewQuantityString("name", []string{"zero","one", "two", ...})`   
 
 | Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| name      | string | unique name to identify the string    |   |   |   |   |   |   |   |
+|-----------|--------|---------------------------------------|
+| name      | string | unique name to identify the string    |
 | values     | []string | array of strings for quantities to associate to the given name |
 
 Returns Plural instance and error.
@@ -192,8 +192,8 @@ Returns Plural instance and error.
 `stres.SetFewThreshold(25)`
 
 | Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| value      | int | new value for 'few' threshold    |   |   |   |   |   |   |   |
+|-----------|--------|---------------------------------------|
+| value      | int | new value for 'few' threshold    |   
 
 Returns Plural instance and error.
 
@@ -205,8 +205,8 @@ Returns Plural instance and error.
 `str := GetString("name")`
 
 | Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| name      | string | unique name given to the corresponding string    |   |   |   |   |   |   |   |
+|-----------|--------|---------------------------------------|
+| name      | string | unique name given to the corresponding string    |
 
 Returns a string.
 
@@ -218,8 +218,8 @@ Returns a string.
 `strArr := GetStringArray("name")`
 
 | Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| name      | string | unique name given to the corresponding string-array    |   |   |   |   |   |   |   |
+|-----------|--------|---------------------------------------|
+| name      | string | unique name given to the corresponding string-array    |
 
 Returns an array of strings.
 
@@ -231,8 +231,8 @@ Returns an array of strings.
 `strArr := GetQuantityString("name", 10)`
 
 | Parameter | Type   | Description                                             |   
-|-----------|--------|---------------------------------------|---|---|---|---|---|---|---|
-| name      | string | unique name to identify the string    |   |   |   |   |   |   |   |
+|-----------|--------|---------------------------------------|
+| name      | string | unique name to identify the string    |
 | count     | int | quantity to fetch the corresponding string |
 
 Returns a string.
