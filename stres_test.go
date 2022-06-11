@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"reflect"
 	"testing"
+
+	"github.com/Vinetwigs/stres/types"
 )
 
 func TestNewString(t *testing.T) {
@@ -14,7 +16,7 @@ func TestNewString(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    String
+		want    types.String
 		wantErr bool
 	}{
 		{

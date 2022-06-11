@@ -1,21 +1,34 @@
 package stres
 
 import (
-	"encoding/xml"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/Vinetwigs/stres/types"
 )
+
+var fileType types.FileType
+var encDec = types.EncoderDecoder{}
 
 var quantityValues = [...]string{"zero", "one", "two", "few", "many"}
 
 var data []byte
 var string_entries map[string]string = make(map[string]string)
-var string_array_entries map[string]StringArray = make(map[string]StringArray)
-var plural_string_entries map[string]Plural = make(map[string]Plural)
+var string_array_entries map[string]types.StringArray = make(map[string]types.StringArray)
+var plural_string_entries map[string]types.Plural = make(map[string]types.Plural)
 
 var few_threshold = 20
+
+const (
+	XML    types.FileType = "xml"
+	YAML   types.FileType = "yml"
+	JSON   types.FileType = "json"
+	TOML   types.FileType = "toml"
+	WATSON types.FileType = "watson"
+)
 
 var (
 	ErrorEmptyStringName         error = errors.New("stres: string name can't be empty")
@@ -31,56 +44,23 @@ var (
 	ErrorQuantityStringEmptyValues error = errors.New("stres: provided empty array to quantity string creationg")
 )
 
-type Plural struct {
-	XMLName xml.Name      `xml:"plurals"`
-	Name    string        `xml:"name,attr"`
-	Items   []*PluralItem `xml:"item"`
-}
-
-type PluralItem struct {
-	XMLName  xml.Name `xml:"item"`
-	Quantity string   `xml:"quantity,attr"`
-	Value    string   `xml:",innerxml"`
-}
-
-type Item struct {
-	XMLName xml.Name `xml:"item"`
-	Value   string   `xml:",innerxml"`
-}
-
-type StringArray struct {
-	XMLName xml.Name `xml:"string-array"`
-	Name    string   `xml:"name,attr"`
-	Items   []*Item  `xml:"item"`
-}
-
-type String struct {
-	XMLName xml.Name `xml:"string"`
-	Name    string   `xml:"name,attr"`
-	Value   string   `xml:",innerxml"`
-}
-
-type Nesting struct {
-	XMLName      xml.Name       `xml:"resources"`
-	Strings      []*String      `xml:"string"`
-	StringsArray []*StringArray `xml:"string-array"`
-	Plurals      []*Plural      `xml:"plurals"`
-}
-
 /*
-	Loads values from strings.xml file into internal dictionaries.
+	Loads values from strings file into internal dictionaries.
 	Needs to be invoked only one time (but before getting strings values).
+	Takes a FileType parameter to specify strings file format.
 */
-func LoadValues() error {
-	var err error
-	n := &Nesting{}
+func LoadValues(t types.FileType) error {
+	SetResourceType(t)
 
-	data, err = readXMLBytes("./strings/strings.xml")
+	var err error
+	n := &types.Nesting{}
+
+	data, err = readBytes(strings.Join([]string{"./strings/strings.", string(t)}, ""))
 	if err != nil {
 		return err
 	}
 
-	err = decodeXML(data, &n)
+	err = encDec.Decode(data, &n)
 	if err != nil {
 		return err
 	}
@@ -104,12 +84,51 @@ func LoadValues() error {
 }
 
 /*
-	Creates strings.xml file in "strings" directory, throws an error otherwise.
+	Used to specify string file extension. If t is a wrong FileType, sets resource type to XML by default.
 */
-func CreateXMLFile() (*os.File, error) {
+
+func SetResourceType(t types.FileType) {
+	switch t {
+	case "xml":
+		xmlED := &types.XMLStrategy{}
+		encDec.SetStrategy(xmlED)
+		fileType = XML
+	case "json":
+		jsonED := &types.JSONStrategy{}
+		encDec.SetStrategy(jsonED)
+		fileType = JSON
+	case "yml":
+		yamlED := &types.YAMLStrategy{}
+		encDec.SetStrategy(yamlED)
+		fileType = YAML
+	case "toml":
+		tomlED := &types.TOMLStrategy{}
+		encDec.SetStrategy(tomlED)
+		fileType = TOML
+	case "watson":
+		watsonED := &types.WatsonStrategy{}
+		encDec.SetStrategy(watsonED)
+		fileType = WATSON
+	default:
+		xmlED := &types.XMLStrategy{}
+		encDec.SetStrategy(xmlED)
+		fileType = XML
+	}
+}
+
+/*
+	Creates strings resource file in "strings" directory, throws an error otherwise.
+	Takes a FileType parameter to specify strings file format.
+*/
+func CreateResourceFile(t types.FileType) (*os.File, error) {
+
+	fileType = t
+
+	SetResourceType(t)
+
 	os.Mkdir("strings", os.ModePerm)
 
-	file, err := os.Create("strings/strings.xml")
+	file, err := os.Create("strings/strings." + string(fileType))
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +142,11 @@ func CreateXMLFile() (*os.File, error) {
 }
 
 /*
-	Deletes XML file if exists, throws an error otherwise.
+	Deletes resource file if exists, throws an error otherwise.
+	Uses setted resource file extension.
 */
-func DeleteXMLFile() error {
-	err := os.Remove("strings/strings.xml")
+func DeleteResourceFile() error {
+	err := os.Remove("strings/strings." + string(fileType))
 	if err != nil {
 		return err
 	}
@@ -140,70 +160,77 @@ func DeleteXMLFile() error {
 }
 
 /*
-	Adds a new string resource to XML file. Throws an error if the chosen name is already inserted or it is an empty string.
+	Adds a new string resource to resource file. Throws an error if the chosen name is already inserted or it is an empty string.
 */
-func NewString(name, value string) (String, error) {
+func NewString(name, value string) (types.String, error) {
 	if strings.TrimSpace(name) == "" {
-		return *new(String), ErrorEmptyStringName
+		return *new(types.String), ErrorEmptyStringName
 	}
 
 	if isDuplicateString(name) {
-		return *new(String), ErrorDuplicateStringName
+		return *new(types.String), ErrorDuplicateStringName
 	}
 
 	string_entries[name] = value
 
 	var err error
 
-	s := String{
-		XMLName: xml.Name{},
-		Name:    name,
-		Value:   value,
+	s := types.String{
+		Name:  name,
+		Value: value,
 	}
 
-	n := &Nesting{}
+	n := &types.Nesting{}
 
-	data, err = readXMLBytes("./strings/strings.xml")
+	data, err = readBytes(strings.Join([]string{"./strings/strings.", string(fileType)}, ""))
 	if err != nil {
-		return *new(String), err
+		return *new(types.String), err
 	}
 
-	err = decodeXML(data, &n)
+	err = encDec.Decode(data, &n)
 	if err != nil {
-		return *new(String), err
+		return *new(types.String), err
 	}
 	n.Strings = append(n.Strings, &s)
 
-	data, err = encodeXML(n)
+	data, err = encDec.Encode(n)
+
+	for i := 0; i < len(data); i++ {
+		fmt.Printf("%+v, ", data[i])
+		if i%10 == 0 {
+			println()
+		}
+	}
+	println()
+
 	if err != nil {
-		return *new(String), err
+		return *new(types.String), err
 	}
 
-	err = writeXMLBytes("strings/strings.xml", data)
+	err = writeBytes(strings.Join([]string{"./strings/strings.", string(fileType)}, ""), data)
 	if err != nil {
-		return *new(String), err
+		return *new(types.String), err
 	}
 
 	return s, nil
 }
 
 /*
-	Adds a new string-array resource to XML file. Throws an error if the chosen name is already inserted or it is an empty string.
+	Adds a new string-array resource to resource file. Throws an error if the chosen name is already inserted or it is an empty string.
 */
-func NewStringArray(name string, values []string) (StringArray, error) {
+func NewStringArray(name string, values []string) (types.StringArray, error) {
 	if strings.TrimSpace(name) == "" {
-		return *new(StringArray), ErrorEmptyStringArrayName
+		return *new(types.StringArray), ErrorEmptyStringArrayName
 	}
 
 	if isDuplicateStringArray(name) {
-		return *new(StringArray), ErrorDuplicateStringArrayName
+		return *new(types.StringArray), ErrorDuplicateStringArrayName
 	}
 
-	sa := &StringArray{Name: name}
+	sa := &types.StringArray{Name: name}
 	for i := 0; i < len(values); i++ {
-		item := &Item{
-			XMLName: xml.Name{},
-			Value:   values[i],
+		item := &types.Item{
+			Value: values[i],
 		}
 		sa.Items = append(sa.Items, item)
 	}
@@ -212,34 +239,34 @@ func NewStringArray(name string, values []string) (StringArray, error) {
 
 	var err error
 
-	n := &Nesting{}
+	n := &types.Nesting{}
 
-	data, err = readXMLBytes("./strings/strings.xml")
+	data, err = readBytes("./strings/strings." + string(fileType))
 	if err != nil {
-		return *new(StringArray), err
+		return *new(types.StringArray), err
 	}
 
-	err = decodeXML(data, &n)
+	err = encDec.Decode(data, &n)
 	if err != nil {
-		return *new(StringArray), err
+		return *new(types.StringArray), err
 	}
 	n.StringsArray = append(n.StringsArray, sa)
 
-	data, err = encodeXML(n)
+	data, err = encDec.Encode(n)
 	if err != nil {
-		return *new(StringArray), err
+		return *new(types.StringArray), err
 	}
 
-	err = writeXMLBytes("strings/strings.xml", data)
+	err = writeBytes("strings/strings."+string(fileType), data)
 	if err != nil {
-		return *new(StringArray), err
+		return *new(types.StringArray), err
 	}
 
 	return *sa, nil
 }
 
 /*
-	Adds a new quantity string resource to XML file.
+	Adds a new quantity string resource to resource file.
 	Throws an error if the chosen name is already inserted or it is an empty string.
 	The function uses only the first 5 values in the array.
 	The first values is assigned to "zero" quantity.
@@ -248,23 +275,22 @@ func NewStringArray(name string, values []string) (StringArray, error) {
 	The fourth values is assigned to "few" quantity.
 	The fifth values is assigned to "more" quantity.
 */
-func NewQuantityString(name string, values []string) (Plural, error) {
+func NewQuantityString(name string, values []string) (types.Plural, error) {
 	if strings.TrimSpace(name) == "" {
-		return *new(Plural), ErrorEmptyStringArrayName
+		return *new(types.Plural), ErrorEmptyStringArrayName
 	}
 
 	if len(values) == 0 {
-		return *new(Plural), ErrorQuantityStringEmptyValues
+		return *new(types.Plural), ErrorQuantityStringEmptyValues
 	}
 
 	if isDuplicateQuantityString(name) {
-		return *new(Plural), ErrorDuplicateQuantityStringName
+		return *new(types.Plural), ErrorDuplicateQuantityStringName
 	}
 
-	pl := &Plural{Name: name}
+	pl := &types.Plural{Name: name}
 	for i := 0; i < len(values) && i < 5; i++ {
-		item := &PluralItem{
-			XMLName:  xml.Name{},
+		item := &types.PluralItem{
 			Quantity: quantityValues[i],
 			Value:    values[i],
 		}
@@ -275,27 +301,27 @@ func NewQuantityString(name string, values []string) (Plural, error) {
 
 	var err error
 
-	n := &Nesting{}
+	n := &types.Nesting{}
 
-	data, err = readXMLBytes("./strings/strings.xml")
+	data, err = readBytes("./strings/strings." + string(fileType))
 	if err != nil {
-		return *new(Plural), err
+		return *new(types.Plural), err
 	}
 
-	err = decodeXML(data, &n)
+	err = encDec.Decode(data, &n)
 	if err != nil {
-		return *new(Plural), err
+		return *new(types.Plural), err
 	}
 	n.Plurals = append(n.Plurals, pl)
 
-	data, err = encodeXML(n)
+	data, err = encDec.Encode(n)
 	if err != nil {
-		return *new(Plural), err
+		return *new(types.Plural), err
 	}
 
-	err = writeXMLBytes("strings/strings.xml", data)
+	err = writeBytes("strings/strings."+string(fileType), data)
 	if err != nil {
-		return *new(Plural), err
+		return *new(types.Plural), err
 	}
 
 	return *pl, nil
@@ -403,21 +429,12 @@ func GetQuantityString(name string, count int) string {
 	}
 }
 
-func readXMLBytes(path string) ([]byte, error) {
-	d, err := ioutil.ReadFile("./strings/strings.xml")
+func readBytes(path string) ([]byte, error) {
+	d, err := ioutil.ReadFile(path)
 	if err != nil {
 		return *new([]byte), err
 	}
 	return d, nil
-}
-
-func decodeXML(data []byte, v interface{}) error {
-	if len(data) == 0 {
-		v = &Nesting{}
-		return nil
-	}
-
-	return xml.Unmarshal(data, v)
 }
 
 func isDuplicateString(name string) bool {
@@ -441,10 +458,6 @@ func isDuplicateQuantityString(name string) bool {
 	return false
 }
 
-func encodeXML(n *Nesting) ([]byte, error) {
-	return xml.MarshalIndent(n, "", "\t")
-}
-
-func writeXMLBytes(path string, data []byte) error {
+func writeBytes(path string, data []byte) error {
 	return os.WriteFile(path, data, 0666)
 }

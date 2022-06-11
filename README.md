@@ -14,13 +14,39 @@
    </i>
 </p>
 
-## Table of Contents
+## Table of contents
 
-[TOC]
+  * [References](#references)
+  * [Prerequisites](#prerequisites)
+  * [Installing](#installing)
+    + [Install module](#install-module)
+    + [Import in your project](#import-in-your-project)
+- [Documentation](#documentation)
+  * [Types](#types)
+    + [Plural](#plural)
+    + [PluralItem](#pluralitem)
+    + [Item](#item)
+    + [StringArray](#stringarray)
+    + [String](#string)
+    + [Nesting](#nesting)
+  * [CreateResourceFile](#createresourcefile)
+  * [DeleteResourceFile](#deleteresourcefile)
+  * [LoadValues](#loadvalues)
+  * [SetResourceType](#setresourcetype)
+  * [NewString](#newstring)
+  * [NewStringArray](#newstringarray)
+  * [NewQuantityString](#newquantitystring)
+  * [SetFewThreshold](#setfewthreshold)
+  * [GetString](#getstring)
+  * [GetArrayString](#getarraystring)
+  * [GetQuantityString](#getquantitystring)
+- [Contributors](#contributors)
+
 
 ### References
 
 * [Android Studio string resources](https://developer.android.com/guide/topics/resources/string-resource)
+* [CHANGELOG](./CHANGELOG.md)
 
 [Back to top](#table-of-contents)
 
@@ -53,9 +79,9 @@ import("github.com/Vinetwigs/stres")
 
 ```go
 type Plural struct {
-	XMLName xml.Name      `xml:"plurals"`
-	Name    string        `xml:"name,attr"`
-	Items   []*PluralItem `xml:"item"`
+	XMLName xml.Name      `xml:"plurals" json:"plurals" yaml:"plurals" toml:"plurals" watson:"plurals"`
+	Name    string        `xml:"name,attr" json:"name" yaml:"name" toml:"name" watson:"name"`
+	Items   []*PluralItem `xml:"item" json:"items" yaml:"items,flow" toml:"items,multiline" watson:"items"`
 }
 ```
 
@@ -65,9 +91,9 @@ type Plural struct {
 
 ```go
 type PluralItem struct {
-	XMLName  xml.Name `xml:"item"`
-	Quantity string   `xml:"quantity,attr"`
-	Value    string   `xml:",innerxml"`
+	XMLName  xml.Name `xml:"item" json:"item" yaml:"item" toml:"item" watson:"item"`
+	Quantity string   `xml:"quantity,attr" json:"quantity" yaml:"quantity" toml:"quantity" watson:"quantity"`
+	Value    string   `xml:",innerxml" json:"value" yaml:"value" toml:"value" watson:"value"`
 }
 ```
 
@@ -77,8 +103,8 @@ type PluralItem struct {
 
 ```go
 type Item struct {
-	XMLName xml.Name `xml:"item"`
-	Value   string   `xml:",innerxml"`
+	XMLName xml.Name `xml:"item" json:"item" yaml:"item" toml:"item" watson:"item"`
+	Value   string   `xml:",innerxml" json:"value" yaml:"value" toml:"value" watson:"value"`
 }
 ```
 
@@ -88,9 +114,9 @@ type Item struct {
 
 ```go
 type StringArray struct {
-	XMLName xml.Name `xml:"string-array"`
-	Name    string   `xml:"name,attr"`
-	Items   []*Item  `xml:"item"`
+	XMLName xml.Name `xml:"string-array" json:"string-array" yaml:"string-array" toml:"string-array" watson:"string-array"`
+	Name    string   `xml:"name,attr" json:"name" yaml:"name" toml:"name" watson:"name"`
+	Items   []*Item  `xml:"item" json:"items" yaml:"items,flow" toml:"items,multiline" watson:"items"`
 }
 ```
 
@@ -100,9 +126,9 @@ type StringArray struct {
 
 ```go
 type String struct {
-	XMLName xml.Name `xml:"string"`
-	Name    string   `xml:"name,attr"`
-	Value   string   `xml:",innerxml"`
+	XMLName xml.Name `xml:"string" json:"string" yaml:"string" toml:"string" watson:"string"`
+	Name    string   `xml:"name,attr" json:"name" yaml:"name" toml:"name" watson:"name"`
+	Value   string   `xml:",innerxml" json:"value" yaml:"value" toml:"value" watson:"value"`
 }
 ```
 
@@ -112,38 +138,57 @@ type String struct {
 
 ```go
 type Nesting struct {
-	XMLName      xml.Name       `xml:"resources"`
-	Strings      []*String      `xml:"string"`
-	StringsArray []*StringArray `xml:"string-array"`
-	Plurals      []*Plural      `xml:"plurals"`
+	XMLName      xml.Name       `xml:"resources" json:"resources" yaml:"resources" toml:"resources" watson:"resources"`
+	Strings      []*String      `xml:"string" json:"string" yaml:"string,flow" toml:"string,multiline" watson:"string"`
+	StringsArray []*StringArray `xml:"string-array" json:"string-array" yaml:"string-array,flow" toml:"string-array,multiline" watson:"string-array"`
+	Plurals      []*Plural      `xml:"plurals" json:"plurals" yaml:"plurals,flow" toml:"plurals,multiline" watson:"plurals"`
 }
 ```
 
 [Back to top](#table-of-contents)
 
-### CreateXMLFile
-*Creates strings.xml file in "strings" directory, throws an error otherwise.*
+### CreateResourceFile
+*Creates strings resource file in "strings" directory, throws an error otherwise. Takes a FileType parameter to specify strings file format.*
 
-`file, err := stres.CreateXMLFile()`  
+`file, err := stres.CreateXMLFile()`
+
+| Parameter | Type   | Description                           |   
+|-----------|--------|---------------------------------------|
+| t      | types.FileType | enum value to specify file format    |
 
 [Back to top](#table-of-contents)
 
-### DeleteXMLFile
-*Deletes XML file if exists, throws an error otherwise.*
+### DeleteResourceFile
+*Deletes resource file if exists, throws an error otherwise. Uses setted resource file extension.*
 
 `err := stres.DeleteXMLFile()`
 
 [Back to top](#table-of-contents)
 
 ### LoadValues
-*Loads values from strings.xml file into internal dictionaries. Needs to be invoked only one time (but before getting strings values).*
+*Loads values from strings file into internal dictionaries. Needs to be invoked only one time (but before getting strings values).Takes a FileType parameter to specify strings file format.*
 
 `err := stres.LoadValues()`
 
 [Back to top](#table-of-contents)
 
+| Parameter | Type   | Description                           |   
+|-----------|--------|---------------------------------------|
+| t      | types.FileType | enum value to specify file format    |
+
+### SetResourceType
+*Used to specify string file extension. If t is a wrong FileType, sets resource type to XML by default.*
+
+`stres.SetResourceType(stres.WATSON)`
+
+| Parameter | Type   | Description                           |   
+|-----------|--------|---------------------------------------|
+| t      | types.FileType | enum value to specify file format    |
+
+[Back to top](#table-of-contents)
+
 ### NewString
-*Adds a new string resource to XML file. Throws an error if the chosen name is already inserted or it is an empty string. Used for programmatic insertion (manual insertion recommended).*
+*Adds a new string resource to resource file. Throws an error if the chosen name is already inserted or it is an empty string. Used for programmatic insertion (manual insertion recommended).*
 
 `String, err := stres.NewString("name", "value")`  
 
@@ -158,7 +203,7 @@ Returns String instance and error.
 [Back to top](#table-of-contents)
 
 ### NewStringArray
-*Adds a new string-array resource to XML file. Throws an error if the chosen name is already inserted or it is an empty string. Used for programmatic insertion (manual insertion recommended).*
+*Adds a new string-array resource to resource file. Throws an error if the chosen name is already inserted or it is an empty string. Used for programmatic insertion (manual insertion recommended).*
 
 `strArr, err := stres.NewStringArray("name", []string{"value1","value2",...})`   
 
@@ -172,7 +217,7 @@ Returns StringArray instance and error.
 [Back to top](#table-of-contents)
 
 ### NewQuantityString
-*Adds a new quantity string resource to XML file. Throws an error if the chosen name is already inserted or it is an empty string. The function uses only the first 5 values in the array. The first value is assigned to "zero" quantity. The second value is assigned to "one" quantity. The third value is assigned to "two" quantity. The fourth value is assigned to "few" quantity. The fifth value is assigned to "more" quantity. Used for programmatic insertion (manual insertion recommended).*
+*Adds a new quantity string resource to resource file. Throws an error if the chosen name is already inserted or it is an empty string. The function uses only the first 5 values in the array. The first value is assigned to "zero" quantity. The second value is assigned to "one" quantity. The third value is assigned to "two" quantity. The fourth value is assigned to "few" quantity. The fifth value is assigned to "more" quantity. Used for programmatic insertion (manual insertion recommended).*
 
 `qntStr, err := stres.NewQuantityString("name", []string{"zero","one", "two", ...})`   
 
