@@ -2,7 +2,6 @@ package stres
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -194,14 +193,6 @@ func NewString(name, value string) (types.String, error) {
 	n.Strings = append(n.Strings, &s)
 
 	data, err = encDec.Encode(n)
-
-	for i := 0; i < len(data); i++ {
-		fmt.Printf("%+v, ", data[i])
-		if i%10 == 0 {
-			println()
-		}
-	}
-	println()
 
 	if err != nil {
 		return *new(types.String), err
