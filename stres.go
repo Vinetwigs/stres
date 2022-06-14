@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/Vinetwigs/stres/types"
 )
@@ -22,11 +23,12 @@ var plural_string_entries map[string]types.Plural = make(map[string]types.Plural
 var few_threshold = 20
 
 const (
-	XML    types.FileType = "xml"
-	YAML   types.FileType = "yml"
-	JSON   types.FileType = "json"
-	TOML   types.FileType = "toml"
-	WATSON types.FileType = "watson"
+	XML     types.FileType = "xml"
+	YAML    types.FileType = "yml"
+	JSON    types.FileType = "json"
+	TOML    types.FileType = "toml"
+	WATSON  types.FileType = "watson"
+	MSGPACK types.FileType = "msgpack"
 )
 
 var (
@@ -64,20 +66,34 @@ func LoadValues(t types.FileType) error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(3)
+
 	// Load strings
-	for i := 0; i < len(n.Strings); i++ {
-		string_entries[n.Strings[i].Name] = n.Strings[i].Value
-	}
+	go func() {
+		defer wg.Done()
+		for i := 0; i < len(n.Strings); i++ {
+			string_entries[n.Strings[i].Name] = n.Strings[i].Value
+		}
+	}()
 
 	// Load string arrays
-	for i := 0; i < len(n.StringsArray); i++ {
-		string_array_entries[n.StringsArray[i].Name] = *n.StringsArray[i]
-	}
+	go func() {
+		defer wg.Done()
+		for i := 0; i < len(n.StringsArray); i++ {
+			string_array_entries[n.StringsArray[i].Name] = *n.StringsArray[i]
+		}
+	}()
 
 	// Load quantity strings
-	for i := 0; i < len(n.Plurals); i++ {
-		plural_string_entries[n.Plurals[i].Name] = *n.Plurals[i]
-	}
+	go func() {
+		defer wg.Done()
+		for i := 0; i < len(n.Plurals); i++ {
+			plural_string_entries[n.Plurals[i].Name] = *n.Plurals[i]
+		}
+	}()
+
+	wg.Wait()
 
 	return nil
 }
@@ -88,26 +104,30 @@ func LoadValues(t types.FileType) error {
 
 func SetResourceType(t types.FileType) {
 	switch t {
-	case "xml":
+	case XML:
 		xmlED := &types.XMLStrategy{}
 		encDec.SetStrategy(xmlED)
 		fileType = XML
-	case "json":
+	case JSON:
 		jsonED := &types.JSONStrategy{}
 		encDec.SetStrategy(jsonED)
 		fileType = JSON
-	case "yml":
+	case YAML:
 		yamlED := &types.YAMLStrategy{}
 		encDec.SetStrategy(yamlED)
 		fileType = YAML
-	case "toml":
+	case TOML:
 		tomlED := &types.TOMLStrategy{}
 		encDec.SetStrategy(tomlED)
 		fileType = TOML
-	case "watson":
+	case WATSON:
 		watsonED := &types.WatsonStrategy{}
 		encDec.SetStrategy(watsonED)
 		fileType = WATSON
+	case MSGPACK:
+		msgpackED := &types.MsgPackStrategy{}
+		encDec.SetStrategy(msgpackED)
+		fileType = MSGPACK
 	default:
 		xmlED := &types.XMLStrategy{}
 		encDec.SetStrategy(xmlED)
@@ -370,6 +390,8 @@ func GetQuantityString(name string, count int) string {
 		return ""
 	}
 
+	idx := -1
+
 	val, exists := plural_string_entries[name]
 
 	if !exists {
@@ -377,47 +399,31 @@ func GetQuantityString(name string, count int) string {
 	}
 
 	if count == 0 {
-		for i := 0; i < len(val.Items); i++ {
-			if val.Items[i].Quantity == quantityValues[0] {
-				return val.Items[i].Value
-			}
-		}
-		return ""
+		idx = 0
 	}
 
 	if count == 1 {
-		for i := 0; i < len(val.Items); i++ {
-			if val.Items[i].Quantity == quantityValues[1] {
-				return val.Items[i].Value
-			}
-		}
-		return ""
+		idx = 1
 	}
 
 	if count == 2 {
-		for i := 0; i < len(val.Items); i++ {
-			if val.Items[i].Quantity == quantityValues[2] {
-				return val.Items[i].Value
-			}
-		}
-		return ""
+		idx = 2
 	}
 
 	if count > 2 && count <= few_threshold {
-		for i := 0; i < len(val.Items); i++ {
-			if val.Items[i].Quantity == quantityValues[3] {
-				return val.Items[i].Value
-			}
-		}
-		return ""
-	} else {
-		for i := 0; i < len(val.Items); i++ {
-			if val.Items[i].Quantity == quantityValues[4] {
-				return val.Items[i].Value
-			}
-		}
-		return ""
+		idx = 3
 	}
+
+	if idx == -1 {
+		idx = 4
+	}
+
+	for i := 0; i < len(val.Items); i++ {
+		if val.Items[i].Quantity == quantityValues[idx] {
+			return val.Items[i].Value
+		}
+	}
+	return ""
 }
 
 func readBytes(path string) ([]byte, error) {
