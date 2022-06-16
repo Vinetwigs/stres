@@ -1,3 +1,4 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/Vinetwigs/stres)](https://goreportcard.com/report/github.com/Vinetwigs/stres)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/Vinetwigs/stres)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Vinetwigs/stres)
 ![GitHub last commit](https://img.shields.io/github/last-commit/Vinetwigs/stres)
